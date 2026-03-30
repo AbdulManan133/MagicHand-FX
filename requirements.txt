@@ -1,0 +1,5 @@
+opencv-python
+mediapipe
+numpy
+vispy>=0.14.0
+PyQt5>=5.15.0

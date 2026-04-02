@@ -1,26 +1,20 @@
 # Hand Particles
 
-Real-time hand-controlled particle system using your webcam.
-Glowing particle clouds follow your hands on a dark background, split per hand, and react to every gesture.
-Hide your hands → particles burst wide and fall across the floor.
-Show your hands again → they reform around each hand instantly.
+Real-time hand-controlled particle simulation with webcam tracking.
 
----
+The app supports:
+- dual-hand particle ownership
+- independent left/right color switching
+- gesture-triggered effects (shield, pinch, snap, clap, gravity tilt)
+- optional demo mode (no webcam)
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `main_back.py` | **Full-featured version** — skeleton overlay, snap/clap, optional **fist shockwaves** (`s`), gravity tilt, backgrounds, screen shake, ground-tint colors |
-| `main.py` | Lightweight version — trails, black-hole pinch, wall physics, floor scatter |
-
-Run the full version:
-
-```bash
-python main_back.py
-```
-
----
+| `main.py` | Entry point that launches `magic_hand.py` |
+| `magic_hand.py` | Main full-feature app (webcam + demo + gestures + effects) |
+| `demo.py` | Demo-only launcher (no webcam path) |
 
 ## Setup
 
@@ -30,107 +24,90 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
----
+## Run
 
-## All launch options (`main_back.py`)
+Full app:
+
+```bash
+python main.py
+```
+
+Demo mode from full app:
+
+```bash
+python main.py --demo
+```
+
+Demo-only launcher:
+
+```bash
+python demo.py
+```
+
+## Launch options (`magic_hand.py`)
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--camera` | `0` | Webcam index. Try `1` if your default doesn't open |
-| `--width` | `960` | Output window width (see note below) |
+| `--camera` | `0` | Webcam index. Try `1` if needed |
+| `--width` | `960` | Output window width |
 | `--height` | `540` | Output window height |
-| `--particles` | `3000` | Number of particles (lower if the CPU struggles) |
-| `--track-width` | `640` | Hand-tracking frame width (lower = faster MediaPipe) |
-| `--track-height` | `360` | Hand-tracking frame height (lower = faster MediaPipe) |
-| `--detect-every` | `2` | Run MediaPipe every N frames (larger N = less CPU; hand pose updates less often) |
-| `--demo` | off | No webcam — two animated fake hands, tests the window |
-| `--vispy` | off | GPU markers via VisPy (requires `pip install PyQt5 vispy`); default is an OpenCV window |
+| `--particles` | `3000` | Particle count |
+| `--track-width` | `640` | Tracking frame width |
+| `--track-height` | `360` | Tracking frame height |
+| `--detect-every` | `2` | Run detection every N frames |
+| `--demo` | off | Use fake hands (no webcam) |
+| `--vispy` | off | Use VisPy GPU markers |
 
-**OpenCV rendering:** particle glow is composited at about **62%** of `--width` × `--height`, then scaled to the full window for performance. The live camera preview still uses your chosen resolution.
-
----
-
-## Controls
-
-### Keyboard (`main_back.py`)
+## Keyboard controls
 
 | Key | Action |
 |-----|--------|
-| `b` | Cycle background mode (black → gradient → wave → circles) |
-| `s` | Toggle **fist shockwaves** — when on, a closed fist emits expanding rings that **push** particles; the extra **ring glow** is drawn only in the **OpenCV** window (simulation still runs with `--vispy`) |
+| `e` | Cycle **left-hand** color |
+| `r` | Cycle **right-hand** color |
+| `s` | Toggle peace-shockwaves |
 | `q` or `Esc` | Quit |
 
-`main.py` may still expose extra keys (for example a color palette); this table matches **`main_back.py`**.
+Notes:
+- Left and right colors are independent.
+- The app prevents both hands from selecting the same color at once.
+- Color list includes 10+ variants, including `red` and brighter `black`.
 
-### Hand gestures
+## Gesture highlights
 
-| Gesture | Action |
+| Gesture | Effect |
 |---------|--------|
-| Move hand | Particle cloud follows your hand |
-| Two hands visible | Splits into two clouds — each hand owns its particles (left = orange, right = blue) |
-| Pinch and hold (thumb + index close) | Black-hole mode — particles spiral inward, dark core, thin glowing ring |
-| Fist (quick close) | Scatter pulse — particles burst outward, then draw back when you open your hand |
-| Fist + **shockwaves on** (`s`) | While the fist stays closed, periodic **shock rings** push nearby particles and add a matching glow (OpenCV view) |
-| Open hand after fist | Particles gather back to the hand(s) |
-| Snap (thumb + index very close, quick) | Shockwave — nearby particles blast outward |
-| Clap (both hands come together fast) | Big explosion — screen shake + particles blast in all directions |
-| Tilt hand sideways | Gravity shifts to match hand orientation — particles fall in that direction |
-| Hide one hand | Only particles near that hand scatter to the floor; the other hand keeps its cloud |
-| Hide both hands | All particles burst wide and fall across the full floor width with wall bounces |
-| Last hand to leave the screen | Free / floor particles use **that hand’s color** (orange = left, blue = right), so the “ground” cloud matches whoever vanished last |
-| Show hands again | Particles reform around each hand |
+| Move hand | Particles follow hand |
+| Open 4 fingers | Shield layer around hand |
+| Index raised + pointing | Shoots orb projectiles from fingertip |
+| Pinch | Black-hole pull effect |
+| Snap | Local shockwave |
+| Clap | Explosion + screen shake |
+| Tilt hand | Gravity direction shifts |
+| Hide hands | Scatter/fall behavior, then reform on return |
 
----
+## Visual notes
 
-## Visual features
-
-- **Hand skeleton overlay** — wireframe drawn on every detected hand (OpenCV path)
-- **Two fixed particle colors** — left ≈ orange, right ≈ blue (BGR `[255,150,100]` / `[100,150,255]`), matched to the skeleton tint; **no palette cycling**
-- **Ground / free-particle tint** — when a hand is gone, particles that aren’t tied to a hand use the color of the **last hand that dropped off tracking**; scattered “floor” bits follow the same rule
-- **Shooting-star trails** — velocity-aligned streaks in the OpenCV glow layer
-- **Proximity dimming** — particles dim near the hand (suction / absorption look); VisPy and OpenCV paths both use it where applicable
-- **Pinch black hole** — darker core + bright ring while pinch is held (OpenCV composite)
-- **Layered bloom** — OpenCV path stacks Gaussian-blurred passes for a soft glow (tuned for speed)
-- **Screen shake** — triggered by clap explosions, decays smoothly
-- **Smart scatter** — when only one hand disappears, only particles near that hand fly off; the other cloud is unaffected
-
----
-
-## Background modes (press `b`)
-
-1. **black** — pure black (default, best contrast)
-2. **gradient** — dark vignette overlay
-3. **wave** — animated wave pattern
-4. **circles** — animated concentric ring pattern
-
----
+- Deep blue gradient background with soft cyan glow
+- Multi-layer bloom and particle trails
+- Per-hand skeleton overlay
+- Ground/free particles tint to last tracked hand side
 
 ## Performance tips
 
-- If lagging: lower particles and skip some detection frames, e.g. `--particles 1800 --width 640 --height 480 --detect-every 3` (or `4`)
-- Smaller `--track-width` / `--track-height` speeds up MediaPipe with slightly rougher landmarks
-- If the camera won't open: `--camera 1` or close Zoom / Teams / other apps using the camera
-- Test without a webcam: `--demo`
-- **VisPy** (`--vispy`) offloads marker drawing to the GPU but still runs the same Python simulation; try it if the OpenCV compositor is the bottleneck
-
----
+- Lower load if needed: `--particles 1800 --width 640 --height 480 --detect-every 3`
+- Lower tracking size for speed: reduce `--track-width` / `--track-height`
+- If webcam fails: try `--camera 1` and close apps using the camera
 
 ## Debug log
 
-If the app closes instantly with no message, open **`magic_hand_debug.log`** in the project directory (same folder as `main_back.py`).
-
-Every run appends a timestamped trace. Full Python tracebacks are written there.
-
----
+If the app closes instantly, open `magic_hand_debug.log` in the project folder.
 
 ## Requirements
 
-See `requirements.txt`:
+From `requirements.txt`:
 
-| Package | Notes |
-|---------|--------|
-| `opencv-python` | Camera + default window + CPU glow composite |
-| `mediapipe` | Hand landmarks |
-| `numpy` | Particle simulation |
-| `vispy` | Optional; GPU markers when you pass `--vispy` |
-| `PyQt5` | Optional; common VisPy backend on Windows (or set `VISPY_BACKEND` if you use another) |
+- `opencv-python`
+- `mediapipe`
+- `numpy`
+- `vispy` (optional)
+- `PyQt5` (optional)
